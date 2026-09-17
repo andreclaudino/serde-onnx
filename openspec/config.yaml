@@ -1,32 +1,44 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Tech stack: Rust (edition 2024), serde, prost/protobuf, ONNX protobuf definitions
+  We use Conventional Commits (feat/fix/chore/docs/refactor/perf/test/build/ci)
+  Domain: ONNX model serialization — serde extension crate analogous to serde_json / serde_yaml that serializes/deserializes Rust structs to ONNX protobuf bytes (ModelProto, GraphProto, NodeProto, TensorProto, etc.)
+  Reference: https://github.com/onnx/onnx/tree/main/docs (Operators.md, IR.md, Versioning.md) — ONNX .proto is source of truth
+  Workflow: spec-driven OpenSpec + dual git worktrees per change + TDD per operator. See AGENTS.md for full workflow.
+  Language: All documentation and code MUST be in English.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Keep proposals under 500 words and in English
+    - Always include Why, Scope, Non-goals, and ONNX reference link (https://github.com/onnx/onnx/tree/main/docs)
+    - State which operators or IR components are in scope
+  specs:
+    - Write delta specs under specs/<capability>/spec.md; do not edit archived specs directly
+    - Use SHALL / MUST for normative requirements
+    - Every ONNX operator or IR requirement must be verifiable and traceable to a test
+    - All spec text in English
+  design:
+    - Include API sketch (serde Serializer/Deserializer surface, e.g., to_bytes/from_bytes), protobuf mapping, error handling, and alternatives considered
+    - Document opset versioning strategy when relevant
+    - Keep design in English; create only when architecture or API choice is needed
+  tasks:
+    - Tasks MUST be written using the tdd skill (globally available at ~/.agents/skills/tdd/SKILL.md)
+    - Follow TDD workflow: Planning -> Tracer Bullet (RED->GREEN) -> Incremental RED-GREEN-REFACTOR loop -> Refactor. Never refactor while RED.
+    - Use vertical slices: each task is one RED->GREEN cycle (one test for one observable behavior through the public serde_onnx API, then minimal implementation). Do NOT batch all tests first (no horizontal slicing).
+    - Every ONNX operator introduced MUST have at least one task that validates it with a test through the public API (round-trip serialize/deserialize or byte-level comparison against ONNX reference). A task without a test is invalid.
+    - Prefer integration-style tests that survive refactors; mock only at system boundaries (filesystem, ONNX checker subprocess) per tdd/mocking.md
+    - Include the per-cycle checklist: behavior not implementation, public interface only, survives refactor, minimal code, no speculation
+    - Break tasks into chunks of max 2 hours; each task references the spec requirement it validates
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - Implement tasks strictly in TDD order; run cargo test and cargo clippy after each GREEN
+      - Keep ops in the correct worktree: code changes in *-code, spec changes in *-openspec (see AGENTS.md)
+      - Keep test summaries concise; report per-operator test results
+  archive:
+    guidance:
+      - Run openspec validate --strict and cargo test before archiving
+      - Summarize TDD outcomes per operator and link the paired Issue and both PRs (spec + code)
+      - Ensure CHANGELOG.md was updated in the *-openspec worktree
