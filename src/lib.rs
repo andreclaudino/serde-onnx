@@ -1,14 +1,12 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+pub mod ir;
+pub mod ml;
+pub mod proto;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[cfg(feature = "export")]
+pub mod export;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+#[cfg(feature = "import")]
+pub mod import;
+
+#[cfg(feature = "export")]
+pub use serde_onnx_macros::OnnxExport;

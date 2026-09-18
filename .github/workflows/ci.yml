@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: fmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --all-targets --features export,import -- -D warnings
+      - name: test (export+import, incl. WEB models roundtrip)
+        run: cargo test --features export,import -- --nocapture
+
+  web-models-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/check_parity.py
+      - name: install python deps (onnx, onnxruntime, sklearn)
+        run: pip install onnx onnxruntime scikit-learn
+      - name: roundtrip via serde-onnx (deserialize -> reserialize)
+        run: SERDE_ONNX_ROUNDTRIP_OUT=/tmp/rt cargo test --features export,import --test web_models_roundtrip
+      - name: functional parity (checker + identical inference, original vs reserialized)
+        run: python3 scripts/check_parity.py --roundtrip /tmp/rt

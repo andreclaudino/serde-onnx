@@ -1,0 +1,16 @@
+[package]
+name = "serde-onnx-macros"
+version = "0.1.0"
+edition.workspace = true
+description = "Derive macros for serde-onnx ONNX model export"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/neurono-ml/serde-onnx"
+documentation = "https://docs.rs/serde-onnx"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2", features = ["full"] }
+quote = "1"
+proc-macro2 = "1"
